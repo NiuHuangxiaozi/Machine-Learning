@@ -34,20 +34,10 @@ class FeedForward(nn.Module):
         self.linear_2=nn.Linear(in_features=self.hiddensize,out_features=self.embedding_size)
         
     def forward(self,x):
-        
-        #分解形状
-        B,L,C=x.shape
-        
-        #除了B这个维度，其他铺平
-        x=x.view(B,-1)
-        
         x=self.linear_1(x)
         x=self.relu1(x)
         x= self.drop1(x)
         x=self.linear_2(x)
-        
-        #重新恢复[B,L,C]的形状
-        x=x.view(B,L,C)
         return x
     
 if __name__=='__main__':
