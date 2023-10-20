@@ -42,7 +42,7 @@ class FeedForward(nn.Module):
     
 if __name__=='__main__':
     #定义
-    feedforward=FeedForward(512*10,4*512*10)
+    feedforward=FeedForward(512,4*512)
     
     #数据
     data=torch.tensor(np.random.normal(0,0.1,(64,10,512))).float()
