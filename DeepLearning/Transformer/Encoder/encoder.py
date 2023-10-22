@@ -4,6 +4,8 @@ import torchvision
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
+
+#tqdm库可以显示进度条
 from tqdm import *
 import os
 
@@ -84,8 +86,11 @@ class Self_Attention(nn.Module):
         
         output=[]
         for index in range(len(multi_Q)):
+
+            #自注意力的过程
             mini_q_k=torch.matmul(multi_Q[index],multi_K[index].transpose(1,2))/scale_matrix
-            
+
+            #进行mask的过程
             if self.atten_mask is not None:
                 mask_mini_q_k=torch.where(self.atten_mask==1,-float('inf'),mini_q_k)
             else:
@@ -93,12 +98,13 @@ class Self_Attention(nn.Module):
             
             #经过softmax -inf变为0
             mini_atten_matrix=F.softmax(mask_mini_q_k,dim=2)
-            
+
+            #注意力矩阵乘以V矩阵
             mini_output=torch.matmul(mini_atten_matrix,multi_V[index])
             
             output.append(mini_output)
             
-            
+        #多头注意力机制，最后将所有的头拼接在一起
         result=torch.cat(output,dim=2)
         
         return result
@@ -183,22 +189,28 @@ class FeedForward(nn.Module):
         x=self.linear_2(x)
         return x
 
+#这个类表示的是一个transformer的encoderlayer的设计，后面的encoder就是将这个模块不断的堆叠咋在一起
 class EncoderLayer(nn.Module):
     
     def __init__(self,input_dim,output_dim,heads):
         super(EncoderLayer,self).__init__()
         
         # atten_mask,input_size=512 , hidden_size=512,heads=8
+        #子注意力模块
         self.self_attention=Self_Attention(None,input_size=input_dim,hidden_size=output_dim,heads=heads)
+        #层归一化层
         self.layernormalization1=LayerNorm()
+        #feedforward层
         self.feed= FeedForward(output_dim,output_dim*4)
         self.layernormalization2=LayerNorm()
         
     def forward(self,x):
+        #这个过程一看论文就知道了
         x=self.layernormalization1(x+self.self_attention(x))
         x=self.layernormalization2(x+self.feed(x))    
         return x
-    
+
+#encoder，堆叠多个encoderlayer
 class Encoder(nn.Module):
     
     def __init__(self,input_dim,hidden_dim,heads,Layer_number,Seq_length=28,category=10):
@@ -216,11 +228,23 @@ class Encoder(nn.Module):
             self.linear2=nn.Linear(in_features=self.Seq_length*self.hidden_dim,out_features=category)
             
     def forward(self,x):
+            '''
+                首先第一个linear层主要的作用就是将原来的embedding升维到模型里面的隐层
+                维度的转化过程就是：[B,L,C] -----> [ B,L,H ] ( [16,10,28]-----[16,10,512] )
+                Transformer 里面的维度一般设置的是512
+            '''
             x=self.linear(x)
+            '''
+                通过一个for循环不断遍历每一层的encoderlayer
+            '''
             for index in range(self.Layer_number):
                 x=self.Encoderlayers[index](x)
+
+            #维度变化是 [B，L,C]---->[B,L*C] 这样就可以用linear层进行分类里了
             x=x.view(x.shape[0],-1)
             x=self.linear2(x)
+        
+            #用softmax进行分类
             x=F.softmax(x,dim=1)
             
             return x
@@ -240,9 +264,13 @@ if __name__=="__main__":
     data_path=cwd_path+'/data/'
     print(data_path)
 
+    #对下载下来的图片准备进行什么操作，[]里面是操作列表，比如:ToTensor()是将一个对象转化为tensor；Normalize是将每一个像素进行归一化
     transfor=torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
                                          torchvision.transforms.Normalize(mean=[0.5],std=[0.5])])
 
+    '''
+        torchvision里面集成了MNIST数据集，我们直接在datasets里面找
+    '''
     train_data=torchvision.datasets.MNIST(data_path,train=True,transform=transfor,download=True)
     test_data=torchvision.datasets.MNIST(data_path,train=False,transform=transfor)
 
