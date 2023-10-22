@@ -274,49 +274,94 @@ if __name__=="__main__":
     train_data=torchvision.datasets.MNIST(data_path,train=True,transform=transfor,download=True)
     test_data=torchvision.datasets.MNIST(data_path,train=False,transform=transfor)
 
+    '''
+        设置训练的批次
+    '''
     BATCH_SIZE=256
+    '''
+        torch.utils.data.DataLoader用来形成数据增加器
+    '''
     train_loader=torch.utils.data.DataLoader(dataset=train_data,batch_size=BATCH_SIZE,shuffle=True)
     test_loader=torch.utils.data.DataLoader(dataset=test_data,batch_size=BATCH_SIZE)
     print(len(train_data))
     
-    
+
+    #定义模型
     model=Encoder(input_dim=28,hidden_dim=128,heads=8,Layer_number=2,Seq_length=28)
     model=model.to(device)
     
     
-    
+    #定义损失函数
     loss_func=torch.nn.CrossEntropyLoss()
+
+    #定义优化器，梯度更新规则
     optim=torch.optim.Adam(model.parameters(),lr=0.001)
+
+    #我们一共训练10轮
     Epoch=10
+
+    #history记录test阶段的loss和accurary用于画图
     history = {'Test Loss':[],'Test Accuracy':[]}
 
 
     for epoch in range(1,Epoch+1):
         #训练部分
+        '''
+            这个写法可以生成进度条，enumerrate会生成（index，value)的组合对
+            trainloader对象本来就是（data，label）的组合对
+        '''
         processBar = tqdm(enumerate(train_loader), total=len(train_loader))
+        
+        #模型训练之前一定要写
         model.train()
-    
+
+        
         for index,(data,label) in processBar:
+            '''
+                将原来的图像维度变换为时间序列的维度，感觉有点像vit
+                [256,1,28,28] ----> [256, 28,28]
+            '''
             data=data.reshape(-1,28,28).to(device)
             label=label.to(device)
-        
+
+            #模型前向传播
             outputs=model(data)
+
+            #argmax就是按照某一个维度求得这个维度上最大值的下标，如果不想降维，请使用keepdim=True
             prediction=torch.argmax(outputs,dim=1)
+            
+            #sum(prediction==label)会生成0-1矩阵，sum求和就是统计为True的过程，再除以本次batch的数量
             acc=torch.sum(prediction==label)/data.shape[0]
+
+            #计算损失
             loss=loss_func(outputs,label)
-        
+
+            '''
+            反向传播三件套
+                zero_grad可以将上一次计算得出的梯度清零，因为每次梯度的计算使用的是加法，如果不清0，那么后面梯度的更新就会加入前面计算出来的梯度
+                backward反向传播
+                step更新参数
+            '''
             optim.zero_grad()
             loss.backward()
             optim.step()
-        
+
+            #进度条旁边打印说明
             processBar.set_description("[%d/%d] Loss : %.8f Acc：%.8f" %(epoch,Epoch,loss,acc))
-        
+
+            #在最后一轮训练完了以后进行测试
             if index==len(processBar)-1:
+                #模型在测试之前要加eval，避免好像drop和normalize的影响
                 model.eval()
+                '''
+                    with torch.no_grad()这句话一定要加，很节省显存空间，测试阶段不用计算任何梯度。
+                '''
                 with torch.no_grad():
                     total_loss=0.
                     total_right=0
                     for index,(t_data,t_label) in enumerate(test_loader):
+
+                        #以下这些和训练的时候一样，可以看上面的训练
                         t_data=t_data.reshape(-1,28,28).to(device)
                         t_label=t_label.to(device)
 
