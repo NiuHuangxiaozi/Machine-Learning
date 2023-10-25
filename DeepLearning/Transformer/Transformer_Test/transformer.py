@@ -585,7 +585,7 @@ if __name__=='__main__':
     #定义损失函数
     criterion = nn.CrossEntropyLoss()
 
-    #history记录test阶段的loss和accurary用于画图
+    #history记录test阶段的loss和accurary用于plot画图
     history = {'Test Loss':[],'Test Accuracy':[]}
 
     #开始多轮训练
@@ -647,41 +647,58 @@ if __name__=='__main__':
             
                 t_prediction=torch.argmax(t_outputs,dim=1)
             
-                #print(t_label.shape)
                 t_label_index=torch.argmax(t_label,dim=1)
+
+                #将所有的loss加起来，后面打印
                 total_loss+=loss
                 total_right+=torch.sum(t_prediction==t_label_index)
             
             test_data_length=len(pData.Get_test_data())
             print(test_data_length)
-        
+
+            
             average_loss=total_loss/test_data_length
             total_acc=total_right/test_data_length
-            #print(average_loss.ittest_data_length
+            
             history['Test Loss'].append(average_loss.item())
             history['Test Accuracy'].append(total_acc.item())
+            
+            #打印这一次的vali的loss和acc
             print("Epoch:{}/{} Vali: average_loss{} Total_acc {}".format(epoch,Epoch,average_loss,total_acc))
+
+    #下面的三行是保存模型的参数
     PATH=os.getcwd()+'/state_dict_model.pth'
-    #先建立路径
     torch.save(model.state_dict(),PATH)
     print("Train model end")    
 
 
 
+#下面的部分是用训练好的模型进行测试
 @torch.no_grad()
 def prediction(model,test_loader, device, batch_size,test_zero_idx):
-    df = pd.DataFrame({'PhraseId': pd.Series(dtype='int'),
-                      'Sentiment': pd.Series(dtype='int')})
+    #创建一个空的DataFrame，
+    df = pd.DataFrame(
+                      {'PhraseId': pd.Series(dtype='int'),
+                      'Sentiment': pd.Series(dtype='int')
+                      }
+                     )
     model.eval()
     for seq, id_ in tqdm(test_loader):
+        #形状变为【B，L，1】 B是testbatch，L是句子长度
         seq=seq.reshape(seq.shape[0],seq.shape[1],1).float().to(device)
+        #进行预测
         out= model(seq)
+        #one-hot变为index
         out_index=torch.argmax(out,dim=1)
+
+        #下面填写DataFrame
         for i, answer in zip(id_,out_index):
+            #如果句子长度为0，就输出中立
             if i in test_zero_idx:
                 predicted = 2
             else:
                 predicted = answer.item()
+            #添加一条记录
             subm = {
                      'PhraseId': int(i), 
                      'Sentiment': predicted
@@ -689,5 +706,7 @@ def prediction(model,test_loader, device, batch_size,test_zero_idx):
             df = df._append(subm, ignore_index=True)  
     return df 
 
+#进行预测，返回一个DataFrame对象
 submission=prediction(model,test_loader, device, 128, pData.Get_test_zero_index())
+#将结果存在csv当中
 submission.to_csv('submission.csv', index=False)
