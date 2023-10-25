@@ -74,36 +74,49 @@ class Linear_regression:
             else:
                 print("Could not be visilized!")
             
-            
+    #在数据的特征维度上扩充一维，即n*m变为n*(m+1)         
     def extend_dim(self,data):
         _One=np.ones([data.shape[0]]).reshape(-1,1)
         return np.concatenate((data,_One),axis=1)
+
+    #相应的数据清零，可以进行下一次拟合
     def Zero_example(self):
         self.train_data=None
         self.train_label=None
         self.test_data=None
         self.test_label=None
-    
+        self.weight=None
+
+
+#我们下面使用波士顿房价数据集，使用sklearn标准库中的线性回归与自己的实现进行对比，以此来验证实现是否正确。
 if __name__=='__main__':
+        #加载数据集
         path=os.getcwd()+"/"+"boston_housing_data.csv"
         boston_housing=pd.read_csv(path)
+        #去除当中的Nan
         boston_housing.dropna(inplace=True)
-        
+
+        #获取我们拟合的目标
         y=np.array(boston_housing['MEDV'])
+        #除去MEDV，其他属性都是x
         X=np.array(boston_housing.drop(['MEDV'],axis=1))
+
+        #划分训练集和测试集
         X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.3,random_state=10)
-        
+
+        #对数据进行MinMax归一化
         MinMax_Scale=preprocessing.MinMaxScaler()
         X_train=MinMax_Scale.fit_transform(X_train)
         X_test=MinMax_Scale.fit_transform(X_test)
         y_train=MinMax_Scale.fit_transform(y_train.reshape(-1,1))
         y_test=MinMax_Scale.fit_transform(y_test.reshape(-1,1))
-        
+
+        #定义自己的模型
         myLR=Linear_regression()
         myLR.train(X_train,y_train)
         myprediction=myLR.predict(X_test)
         
-        
+        #使用官方模型
         LR = LinearRegression()
         # 使用训练数据进行参数估计
         LR.fit(X_train, y_train)
@@ -112,6 +125,8 @@ if __name__=='__main__':
         
         
         number,_=prediction.shape
+
+        #下面验证是否输出一致
         for index in range(number):
             if not math.isclose(prediction[index][0],myprediction[index][0]):
                 print("My LinearRegression model doesn't achieve the standard model.")
