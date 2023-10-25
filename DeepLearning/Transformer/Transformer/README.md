@@ -14,11 +14,7 @@ tqdm  --- 4.65.0
 nltk --- 3.8.1
 ```
 
-附：整个实验环境在anaconda中创建环境，然后在里面输入以下的命令（官网可见）
-
-[https://pytorch.org/get-started/previous-versions/]: 	"pytorch官网"
-
-
+附：整个实验环境在anaconda中创建环境，然后在里面输入以下的命令（官网可见）[pytorch官网](https://pytorch.org/get-started/previous-versions/)
 
 ```
 conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.8 -c pytorch -c nvidia
