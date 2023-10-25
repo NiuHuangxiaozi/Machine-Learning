@@ -12,52 +12,64 @@ import math
 class Linear_regression:
     def __init__(self,regularization='L2',lam=0.0):
         
-        self.weight=None
+        self.weight=None #就是w
          
         self.train_data=None
         self.train_label=None
         self.test_data=None
         self.test_label=None
-        
+
+        #正则化项，我们这里实现的是L2正则化
         self.reg=regularization
+        #正则化项的系数
         self.lam=lam
-        
+
+    #训练w和b
     def train(self,train_data,train_label):
         # self.train_data  n*m矩阵  输入的训练数据集，n表示数据样本数 ，m代表的是每一个样本的维度
         self.train_data=train_data
         self.train_label=train_label
+        #在数据的特征维度上扩充一维，即n*m变为n*(m+1)
         X=self.extend_dim(self.train_data)
         y=self.train_label
-        
+
+        #单位矩阵
         n,m_1=X.shape
         I=np.eye(m_1)
-        
+
+        #下面三行就是公式
         if self.reg == 'L2':
-            XT_X=np.linalg.inv(np.matmul(X.T,X)+self.lam*I)
-            XT_y=np.matmul(X.T,y)
-            
+            XT_X=np.linalg.inv(np.matmul(X.T,X)+self.lam*I)#求逆
+            XT_y=np.matmul(X.T,y)   
         self.weight=np.matmul(XT_X,XT_y)
+
+    #拟合阶段
     def predict(self,test_data):
-        
         self.test_data=test_data
-        X=self.extend_dim(self.test_data)
-        
+        X=self.extend_dim(self.test_data) #与训练的时候一样
         result=np.matmul(X,self.weight)
         self.test_label=result
         return result
-    
+
+    #这个函数判断是否可以简单可视化，如果是一维就可以画出一个二维的图
     def is_visualize(self):
         return self.train_data is not None and self.train_data.shape[1]==1
+
+    #将线性回归可视化
     def draw(self):
-            if self.is_visualize():      
+            #判断是否可以可视化
+            if self.is_visualize():
+                #画出traindata和testdata的散点图，颜色分别是：绿色和红色
                 plt.scatter(self.train_data.reshape(-1),self.train_label.reshape(-1),c='g',label="train data")
                 plt.scatter(self.test_data.reshape(-1),self.test_label.reshape(-1),c='r',label="predict_data")
                 plt.legend(loc='best')
 
+                #生成x的list
                 line_x=np.array([item for item in range(self.train_data.min(),self.train_data.max()+1)])
-                
+                #线性拟合，算出相应的y
                 line_y=np.matmul(self.extend_dim(line_x.reshape(-1,1)),self.weight)
-                
+
+                #画出拟合的直线
                 plt.plot(line_x,line_y,c='y',linestyle='--')
             else:
                 print("Could not be visilized!")
