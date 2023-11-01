@@ -15,7 +15,11 @@
 ```
 /LinearRegression/linear_regression.py
 ```
+#### 2.2 LDA
 
+```
+/LDA/LDA.py
+```
 #### 2.3 深度学习
 
 ##### 2.3.2 Transformer
