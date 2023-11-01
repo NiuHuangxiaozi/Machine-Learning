@@ -14,4 +14,4 @@ matplotlib----3.7.2
 
 ## 三、实验结果
 
-参见jupyterbook后面的实例图
+参见jupyterbook后面的示例图
